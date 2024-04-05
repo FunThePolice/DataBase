@@ -18,7 +18,7 @@ class User extends Model
         parent::__construct();
     }
 
-    public function formSingleInput($name,$email,$password): array
+    public function formInput($name,$email,$password): array
     {
         $this->fillable = [
             'name' => $name,
@@ -28,15 +28,6 @@ class User extends Model
         return $this->fillable;
     }
 
-    public function formMultiInput(): array
-    {
-        $this->fillable[] = [
-            'name' => $this->name,
-            'email' => $this->email,
-            'password' => $this->password];
-
-        return $this->fillable;
-    }
     public function save(): void
     {
         $this->addUser($this->fillable);
@@ -46,7 +37,5 @@ class User extends Model
     {
         $this->updateUser($this->fillable,$id);
     }
-
-
 
 }
