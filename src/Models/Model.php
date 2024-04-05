@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Database\Database;
+use App\Helpers\Message;
 use mysqli;
 
 abstract class Model
@@ -12,15 +13,29 @@ abstract class Model
     protected string $table;
     public function __construct()
     {
-        $connection = new Database();
-        $this->db = $connection->getConnection();
+        $this->db = Database::connect();
     }
 
     public function addUser(array $params): void
     {
-            $stmt = $this->db->prepare("INSERT INTO users (name,password,email) VALUES (?,?,?)");
-            $stmt->bind_param("sss", $params['name'], $params['password'], $params['email']);
-            $stmt->execute();
+        $stmt = $this->db->prepare("INSERT INTO users (name,password,email) VALUES (?,?,?)");
+        $password_hash = password_hash($params['password'], PASSWORD_DEFAULT);
+        $stmt->bind_param("sss", $params['name'], $password_hash, $params['email']);
+        $stmt->execute();
+    }
+
+    public function checkIfExist(string $table, string $column,string $param): bool
+    {
+        $stmt = $this->db->prepare("SELECT * FROM $table WHERE $column = ?");
+        $stmt->bind_param('s',$param);
+        $stmt->execute();
+        $record = $stmt->get_result();
+       if ($record->num_rows > 0) {
+           Message::flash($param .' Уже используется');
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public function updateUser(array $params, int $id): void
@@ -36,8 +51,17 @@ abstract class Model
         $stmt = $this->db->prepare("SELECT * FROM $this->table WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
-        $result = $stmt->get_result();
-        return $result->fetch_assoc();
+        $record = $stmt->get_result();
+        return $record->fetch_assoc();
+    }
+
+    public function getByName(string $name): bool|array|null
+    {
+        $stmt = $this->db->prepare("SELECT * FROM $this->table WHERE name = ?");
+        $stmt->bind_param("s", $name);
+        $stmt->execute();
+        $record = $stmt->get_result();
+        return $record->fetch_assoc();
     }
 
     public function all(): array
@@ -74,6 +98,11 @@ abstract class Model
         $sql = "DELETE FROM $this->table";
         $stmt= $this->db->prepare($sql);
         $stmt->execute();
+    }
+
+    public function getTable(): string
+    {
+        return $this->table;
     }
 
 }
